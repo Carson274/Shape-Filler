@@ -77,7 +77,7 @@ model.to(device)
 # define optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-num_iterations = 1
+num_iterations = 0
 
 # iterate for 1000 times over 4000 total images (1000 x batch size of 4)
 for x_batch, y_batch in islice(train_loader, 5000):
@@ -90,8 +90,10 @@ for x_batch, y_batch in islice(train_loader, 5000):
   # then use the save method to save the image
   # only save every 50 iterations
   if num_iterations % 50 == 0:
-    torchvision.transforms.ToPILImage(mode=None)(model_predictions[0].squeeze()).save(f'./predictions/prediction_{num_iterations}.jpg')
-    torchvision.transforms.ToPILImage(mode=None)(y_batch[0].squeeze()).save(f'./ground_truth/ground_truth_{num_iterations}.jpg')
+    # use the sigmoid function to convert the predictions to a probability
+    image_prediction = torch.sigmoid(model_predictions[0])
+    torchvision.transforms.ToPILImage(mode=None)(image_prediction[0].squeeze()).save(f'./predictions/p_{num_iterations}.jpg')
+    torchvision.transforms.ToPILImage(mode=None)(y_batch[0].squeeze()).save(f'./ground_truth/g_{num_iterations}.jpg')
 
   # backpropagation
   optimizer.zero_grad()

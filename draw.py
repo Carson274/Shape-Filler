@@ -5,7 +5,7 @@ import random
 # class to draw an outline and filled-in shape
 class DrawAShape:
   # initialize the shape with an image size
-  def __init__(self, image_size=(500, 300)):
+  def __init__(self, image_size=(224, 224)):
     self.image_size = image_size
 
     # create image outline with a white background
@@ -32,7 +32,7 @@ class DrawAShape:
     max_diameter = min(self.image_size) // 2
 
     # make the diameter be a random number between 50 and the maximum allowed
-    diameter = random.randint(50, max_diameter)
+    diameter = random.randint(20, max_diameter)
 
     # set the upper bounds to be random, while staying in the bounds of the frame
     upper_left_x = random.randint(0, self.image_size[0] - diameter)
