@@ -14,9 +14,23 @@ import numpy as np
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torchvision import transforms
+import torchvision
 
-# import time to keep track of it
+# import time to keep track of it and os to create directories
 import time
+import os
+
+# create directories to save the predictions and ground truth
+if not os.path.exists('./predictions'):
+  os.makedirs('./predictions')
+if not os.path.exists('./ground_truth'):
+  os.makedirs('./ground_truth')
+
+# clear the directory of any previous images
+for file in os.listdir('./predictions'):
+  os.remove(f'./predictions/{file}')
+for file in os.listdir('./ground_truth'):
+  os.remove(f'./ground_truth/{file}')
 
 start_time = time.time()
 
@@ -66,11 +80,18 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 num_iterations = 1
 
 # iterate for 1000 times over 4000 total images (1000 x batch size of 4)
-for x_batch, y_batch in islice(train_loader, 1000):
+for x_batch, y_batch in islice(train_loader, 5000):
   x_batch, y_batch = x_batch.to(device), y_batch.to(device)
   
   model_predictions = model(x_batch)
   loss = F.binary_cross_entropy_with_logits(model_predictions, y_batch)
+
+  # use torchvision.transforms.ToPILImage(mode=None) to convert the tensor to a PIL Image
+  # then use the save method to save the image
+  # only save every 50 iterations
+  if num_iterations % 50 == 0:
+    torchvision.transforms.ToPILImage(mode=None)(model_predictions[0].squeeze()).save(f'./predictions/prediction_{num_iterations}.jpg')
+    torchvision.transforms.ToPILImage(mode=None)(y_batch[0].squeeze()).save(f'./ground_truth/ground_truth_{num_iterations}.jpg')
 
   # backpropagation
   optimizer.zero_grad()
