@@ -13,24 +13,33 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torchvision import transforms
+from torchvision import transforms, datasets
 import torchvision
+from torch.utils.tensorboard import SummaryWriter
 
 # import time to keep track of it and os to create directories
 import time
 import os
+
+import matplotlib.pyplot as plt
+
 
 # create directories to save the predictions and ground truth
 if not os.path.exists('./predictions'):
   os.makedirs('./predictions')
 if not os.path.exists('./ground_truth'):
   os.makedirs('./ground_truth')
+if not os.path.exists('./runs'):
+  os.makedirs('./runs')
 
 # clear the directory of any previous images
 for file in os.listdir('./predictions'):
   os.remove(f'./predictions/{file}')
 for file in os.listdir('./ground_truth'):
   os.remove(f'./ground_truth/{file}')
+
+# automatically write to ./runs/
+writer = SummaryWriter()
 
 start_time = time.time()
 
@@ -65,7 +74,7 @@ class RandomShapesDataset(torch.utils.data.IterableDataset):
 train_dataset = RandomShapesDataset()
 
 # load the dataset into a loader with a small batch size for now
-train_loader = DataLoader(train_dataset, batch_size=4)
+train_loader = DataLoader(train_dataset, batch_size=8)
 
 # define model
 model = UNet(n_class=1)
@@ -78,6 +87,8 @@ model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 num_iterations = 0
+loss_count = 0
+loss_values = []
 
 # iterate for 1000 times over 4000 total images (1000 x batch size of 4)
 for x_batch, y_batch in islice(train_loader, 5000):
@@ -92,6 +103,7 @@ for x_batch, y_batch in islice(train_loader, 5000):
   if num_iterations % 50 == 0:
     # use the sigmoid function to convert the predictions to a probability
     image_prediction = torch.sigmoid(model_predictions[0])
+
     torchvision.transforms.ToPILImage(mode=None)(image_prediction[0].squeeze()).save(f'./predictions/p_{num_iterations}.jpg')
     torchvision.transforms.ToPILImage(mode=None)(y_batch[0].squeeze()).save(f'./ground_truth/g_{num_iterations}.jpg')
 
@@ -106,3 +118,26 @@ for x_batch, y_batch in islice(train_loader, 5000):
 
   print(f'Iteration: {num_iterations} | Time: {formatted_time} | Loss: {loss.item()}')
   num_iterations += 1
+
+  # add data to tensorboard
+  writer.add_scalar('Loss/train', loss, num_iterations)
+  loss_value = loss.item()
+  loss_values.append(loss_value)
+
+
+  if loss < 0.005:
+    loss_count += 1
+  
+  if loss_count >= 5 and loss_count % 5 == 0:
+    torch.save(model, f'models/model{loss_count}.pt')
+  
+  # if loss_count >= 15:
+  #   break
+
+plt.plot(loss_values)
+plt.title('Training Loss')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.savefig('./loss_plot.png')
+plt.close()
+writer.close()
